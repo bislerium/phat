@@ -1,5 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using System.IO;
+using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using System;
 
 namespace phat.Services
 {
@@ -7,68 +10,55 @@ namespace phat.Services
     {
 
         private readonly TcpClient _client;
-        private readonly StreamReader _sr;
-        private readonly StreamWriter _sw;
-        private bool _closed;
+        private readonly NetworkStream _ns;
 
 
         internal MessageService(TcpClient client)
         {
             _client = client;
-            NetworkStream ns = _client.GetStream();
-            _sr = new(ns);
-            _sw = new(ns);
-            _closed = false;
+            _ns = client.GetStream();
         }
 
-        internal void ReadMessage()
+        internal async Task ReadMessage()
         {
-            while (!_closed && _client.Connected)
-            {
-                string? message = _sr.ReadToEnd();
-                Console.WriteLine("1");
-                if (message != null) Console.WriteLine(message);
+            
+            byte[] msgbuffer = new byte[2];
+            int msgSize = 0;
+            StringBuilder sb = new();
+
+            IPEndPoint endpoint = (IPEndPoint) _client.Client.RemoteEndPoint!;
+            String clientIP = endpoint.Address.ToString();
+            int port = endpoint.Port;
+
+            while (_client.Connected) {
+                while (_ns.DataAvailable)
+                {
+                    msgSize += await _ns.ReadAsync(msgbuffer);
+                    String s = Encoding.UTF8.GetString(msgbuffer);
+                    sb.Append(s);
+                }
+                if (sb.Length > 0)
+                {
+                    Console.WriteLine("{0}:{1} ({2}B): {3}", clientIP, port,  msgSize ,sb.ToString());
+                    sb.Clear();
+                    msgSize = 0;
+                    Array.Clear(msgbuffer);
+                }
             }
         }
 
         internal async Task WriteMessage(string message)
         {
-            await _sw.WriteAsync(message);
-            _sw.Flush();
+            if (_client.Connected) {
+                byte[] writeBuffer = Encoding.UTF8.GetBytes(message);
+                await _ns.WriteAsync(writeBuffer);
+            }
         }
 
         internal void Close()
         {
-            _closed = true;
             _client.Close();
-            _sr.Close();
-            _sw.Close();
-        }
-    }
-
-    internal class MessageReaderService : IHostedService
-    {
-        public TcpClient Client { get; set; }
-        public StreamReader Reader { get; set; }
-        public bool Closed { get; set; } = true;
-
-        Task IHostedService.StartAsync(CancellationToken cancellationToken)
-        {
-            if (cancellationToken.IsCancellationRequested) {
-            
-            }
-            while (!Closed && Client.Connected)
-            {
-                string? message = Reader.ReadToEnd();
-                Console.WriteLine("1");
-                if (message != null) Console.WriteLine(message);
-            }
-            return Task.CompletedTask;
-        }
-
-        Task IHostedService.StopAsync(CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
+            _ns.Close();
         }
     }
 }
