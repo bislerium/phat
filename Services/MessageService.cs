@@ -6,50 +6,50 @@ using System;
 
 namespace phat.Services
 {
+
+    internal delegate void onMessageHandler(IPEndPoint senderEndpoint, int messageSize, string message);
+
     internal class MessageService
     {
 
-        private readonly TcpClient _client;
+        internal TcpClient Client { get; init; }
         private readonly NetworkStream _ns;
-
 
         internal MessageService(TcpClient client)
         {
-            _client = client;
+            Client = client;
             _ns = client.GetStream();
         }
 
-        internal async Task ReadMessage()
+        internal async Task ReadMessage(onMessageHandler onMessage)
         {
             
             byte[] msgbuffer = new byte[2];
             int msgSize = 0;
             StringBuilder sb = new();
 
-            IPEndPoint endpoint = (IPEndPoint) _client.Client.RemoteEndPoint!;
-            String clientIP = endpoint.Address.ToString();
-            int port = endpoint.Port;
+            IPEndPoint remoteEndpoint = ConnectionService.GetRemoteClientEndpoint(Client)!;
 
-            while (_client.Connected) {
+            while (Client.Connected) {
                 while (_ns.DataAvailable)
                 {
                     msgSize += await _ns.ReadAsync(msgbuffer);
                     String s = Encoding.UTF8.GetString(msgbuffer);
                     sb.Append(s);
+                    Array.Clear(msgbuffer);
                 }
                 if (sb.Length > 0)
                 {
-                    Console.WriteLine("{0}:{1} ({2}B): {3}", clientIP, port,  msgSize ,sb.ToString());
+                    onMessage.Invoke(remoteEndpoint, msgSize, sb.ToString());
                     sb.Clear();
                     msgSize = 0;
-                    Array.Clear(msgbuffer);
                 }
             }
         }
 
         internal async Task WriteMessage(string message)
         {
-            if (_client.Connected) {
+            if (Client.Connected) {
                 byte[] writeBuffer = Encoding.UTF8.GetBytes(message);
                 await _ns.WriteAsync(writeBuffer);
             }
@@ -57,8 +57,8 @@ namespace phat.Services
 
         internal void Close()
         {
-            _client.Close();
             _ns.Close();
+            Client.Close();
         }
     }
 }

@@ -3,38 +3,39 @@ using System.Net;
 
 namespace phat.Services
 {
+
+    internal delegate void onStartHandler(IPEndPoint hostEndpoint); 
+    internal delegate void onConnectHandler(IPEndPoint remoteHostAddress);
+    
+    
     internal static class ConnectionService
     {
-        internal static TcpClient Connect(String remoteHostAddress, int port)
+        internal static TcpClient Create(IPEndPoint localEndpoint, onStartHandler onStart, onConnectHandler onConnect)
         {
+            TcpListener listener = new(localEndpoint);
+            listener.Start();
+            onStart.Invoke(localEndpoint);
+
+            TcpClient client = listener.AcceptTcpClient();
+            IPEndPoint remoteEndpoint = GetRemoteClientEndpoint(client)!;
+            onConnect.Invoke(remoteEndpoint);
+
+            return client;
+        }
+
+        internal static TcpClient Join(IPEndPoint remoteEndpoint, onConnectHandler onConnect)
+        {
+            var f = FlattenIPEndpoint(remoteEndpoint);
             try
             {
-                TcpClient client = new(remoteHostAddress, port);
-                    if (client.Connected)
-                    {
-                        Console.WriteLine("Connected");
-                    }
-                    return client;
-                
+                TcpClient client = new(f.Item1, f.Item2);
+                if (client.Connected) onConnect.Invoke(remoteEndpoint);                
+                return client;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
-        }
-        internal static TcpClient Start(out IPAddress ipAddress, out int port)
-        {
-            IPEndPoint ipEndPoint = new(GetLocalIPAddress(), 13000);
-            ipAddress= ipEndPoint.Address;
-            port= ipEndPoint.Port;
-            Console.WriteLine($"Chat session started at {ipAddress}:{port}.");
-
-            TcpListener listener = new(ipEndPoint);
-            listener.Start();
-            Console.WriteLine("Waiting to join...");
-            TcpClient client = listener.AcceptTcpClient();
-            Console.WriteLine("Someone Joined");
-            return client;
         }
 
         public static IPAddress GetLocalIPAddress()
@@ -45,6 +46,10 @@ namespace phat.Services
                 .First(ip => ip.AddressFamily == AddressFamily.InterNetwork);
             throw new Exception("No network adapters with an IPv4 address in the system!");
         }
+
+        public static IPEndPoint? GetRemoteClientEndpoint(TcpClient client) => client.Client.RemoteEndPoint as IPEndPoint;
+        
+        public static (string, int) FlattenIPEndpoint(IPEndPoint ipEndPoint) => (ipEndPoint.Address.ToString(), ipEndPoint.Port);
     }
 }
 
