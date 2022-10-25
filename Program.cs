@@ -1,7 +1,7 @@
 ﻿using CommandDotNet;
 using phat.Interface.CMD;
 
-Console.Title = "Phat";
+Console.Title = Settings.AppTitle;
 
 
 new AppRunner<ConsoleCommand>()

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandDotNet" Version="7.0.1" />
+    <PackageReference Include="Spectre.Console" Version="0.45.0" />
   </ItemGroup>
 
 </Project>

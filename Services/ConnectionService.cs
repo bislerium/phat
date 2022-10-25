@@ -4,32 +4,25 @@ using System.Net;
 namespace phat.Services
 {
 
-    internal delegate void onStartHandler(IPEndPoint hostEndpoint); 
-    internal delegate void onConnectHandler(IPEndPoint remoteHostAddress);
+    internal delegate TcpClient onStartHandler(TcpListener listener); 
+    internal delegate void onConnectHandler(TcpClient client);
     
     
     internal static class ConnectionService
     {
-        internal static TcpClient Create(IPEndPoint localEndpoint, onStartHandler onStart, onConnectHandler onConnect)
+        internal static TcpClient Create(IPEndPoint localEndpoint, onStartHandler onStart)
         {
             TcpListener listener = new(localEndpoint);
             listener.Start();
-            onStart.Invoke(localEndpoint);
-
-            TcpClient client = listener.AcceptTcpClient();
-            IPEndPoint remoteEndpoint = GetRemoteClientEndpoint(client)!;
-            onConnect.Invoke(remoteEndpoint);
-
-            return client;
+            return onStart.Invoke(listener);             
         }
 
-        internal static TcpClient Join(IPEndPoint remoteEndpoint, onConnectHandler onConnect)
+        internal static TcpClient Join(String remoteIP, int remotePort, onConnectHandler onConnect)
         {
-            var f = FlattenIPEndpoint(remoteEndpoint);
             try
             {
-                TcpClient client = new(f.Item1, f.Item2);
-                if (client.Connected) onConnect.Invoke(remoteEndpoint);                
+                TcpClient client = new(remoteIP, remotePort);
+                onConnect.Invoke(client);                
                 return client;
             }
             catch (Exception)

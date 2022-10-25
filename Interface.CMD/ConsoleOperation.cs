@@ -1,4 +1,5 @@
 ﻿using phat.Services;
+using Spectre.Console;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
@@ -19,9 +20,9 @@ namespace phat.Interface.CMD
         private void StartMessageReadOperation() {
             Thread readerThread = new(async () =>
             {
-                await _messageService.ReadMessage((senderEndpoint, messageSize, message) => {                   
-                    Console.WriteLine("{0}:{1} ({2}B): {3}", _remoteHostAddress.ip, _remoteHostAddress.port, messageSize, message);
-                    if (Preference.beepOnIncomingMessage) Console.Beep();
+                await _messageService.ReadMessage((senderEndpoint, messageSize, message) => {
+                    AnsiConsole.MarkupLine("[green]{0}:{1} ({2}B):[/] {3}", _remoteHostAddress.ip, _remoteHostAddress.port, messageSize, message);
+                    if (Settings.beepOnIncomingMessage) Console.Beep();
                 });
             })
             {
@@ -65,7 +66,12 @@ namespace phat.Interface.CMD
                         break;
                     }
                 }
-                Console.WriteLine("\n{0}:{1} DISCONNECTED!\n", _remoteHostAddress.ip, _remoteHostAddress.port);
+                Rule rule = new("[red]Disconnected[/]")
+                {
+                    Alignment = Justify.Left
+                };
+                AnsiConsole.WriteLine("");
+                AnsiConsole.Write(rule);
             });
             ConnectionStateThread.Start();
         }
