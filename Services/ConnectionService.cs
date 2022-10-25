@@ -41,7 +41,9 @@ namespace phat.Services
         }
 
         public static IPEndPoint? GetRemoteClientEndpoint(TcpClient client) => client.Client.RemoteEndPoint as IPEndPoint;
-        
+
+        public static IPEndPoint? GetLocalClientEndpoint(TcpClient client) => client.Client.LocalEndPoint as IPEndPoint;
+
         public static (string, int) FlattenIPEndpoint(IPEndPoint ipEndPoint) => (ipEndPoint.Address.ToString(), ipEndPoint.Port);
     }
 }

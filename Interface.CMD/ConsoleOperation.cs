@@ -8,20 +8,19 @@ namespace phat.Interface.CMD
     internal class ConsoleOperation
     {
         private readonly MessageService _messageService;
-        private readonly (string ip, int port) _remoteHostAddress;
         private const int POLL_RATE_MIL = 1000*2;
         
         public ConsoleOperation(MessageService messageService)
         {
             _messageService = messageService;
-            _remoteHostAddress = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(_messageService.Client)!);
         }
 
         private void StartMessageReadOperation() {
             Thread readerThread = new(async () =>
             {
                 await _messageService.ReadMessage((senderEndpoint, messageSize, message) => {
-                    AnsiConsole.MarkupLine("[green]{0}:{1} ({2}B):[/] {3}", _remoteHostAddress.ip, _remoteHostAddress.port, messageSize, message);
+                    ClearCursorLine();
+                    AnsiConsole.MarkupLine("   [black on lime] {0} [/][white on red] {1}B [/] {2}", getCurrentTime(), messageSize, message);
                     if (Settings.beepOnIncomingMessage) Console.Beep();
                 });
             })
@@ -38,13 +37,23 @@ namespace phat.Interface.CMD
                 while (true)
                 {
                     string? s = Console.ReadLine();
-                    if (s is not null) await _messageService.WriteMessage(s);
+                    ClearCursorLine(1);
+                    if (s is not null && s.Length > 0) await _messageService.WriteMessage(s, (senderEndpoint, messageSize, message) => {
+                        AnsiConsole.MarkupLine("   [black on yellow] {0} [/][white on red] {1}B [/] {2}", getCurrentTime(), messageSize, message);
+                    });
                 }
             })
             {
                 IsBackground = true,
             };
             writerThread.Start();
+        }
+
+        public static void ClearCursorLine(int index = 0)
+        {
+            Console.SetCursorPosition(0, Console.CursorTop - index);
+            Console.Write(new string(' ', Console.BufferWidth));
+            Console.SetCursorPosition(0, Console.CursorTop);
         }
 
         internal void Start()
@@ -83,5 +92,8 @@ namespace phat.Interface.CMD
               .FirstOrDefault(x => x.LocalEndPoint.Equals(socketClient.LocalEndPoint));
             return foo != null ? foo.State : TcpState.Unknown;
         }
+
+        public static string getCurrentTime() => DateTime.Now.ToLongTimeString();
+
     }
 }

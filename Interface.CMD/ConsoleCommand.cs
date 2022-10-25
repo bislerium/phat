@@ -14,7 +14,7 @@ namespace phat.Interface.CMD
             AnsiConsole.Write(new FigletText(Settings.AppTitle)
                 .LeftAligned()
                 .Color(Color.Red));
-            Console.WriteLine(Settings.AppDescription);
+            AnsiConsole.Write(new Panel($"{Settings.AppDescription} [black on yellow rapidblink] {Settings.AppRepoURL} [/] [white on royalblue1] {Settings.AppVersion} [/]"));
         }
 
         [Command("host")]
@@ -31,7 +31,7 @@ namespace phat.Interface.CMD
                     .Start($"Chat session started at {f.Item1}:{f.Item2}", ctx => 
                     {
                        TcpClient client = listener.AcceptTcpClient();
-                       onConnectPrint(client);
+                       onConnectPrint(client, true);
                        return client;
                     });
                 }
@@ -77,9 +77,10 @@ namespace phat.Interface.CMD
             co.Start();
         }
 
-        void onConnectPrint(TcpClient client) {
-            var f = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
-            Rule rule = new($"[green]Connected[/] -> [green]{f.Item1}:{f.Item2}[/]")
+        void onConnectPrint(TcpClient client, bool reverse = false) {
+            var r = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
+            var f = ConnectionService.FlattenIPEndpoint(ConnectionService.GetLocalClientEndpoint(client)!);
+            Rule rule = new($"[green]Connected at {DateTime.Now} :[/] [black on yellow] {f.Item1}:{f.Item2} (You) [/] {(reverse ? "<-" : "->")} [black on lime] {r.Item1}:{r.Item2} [/]")
             {
                 Alignment = Justify.Left
             };
@@ -87,5 +88,6 @@ namespace phat.Interface.CMD
             AnsiConsole.Write(rule);
             AnsiConsole.WriteLine("");
         }
+
     }
 }

@@ -13,12 +13,17 @@ namespace phat.Services
     {
 
         internal TcpClient Client { get; init; }
+        internal IPEndPoint LocalEndpoint { get; init; }
+        internal IPEndPoint RemoteEndpoint { get; init; }
+
         private readonly NetworkStream _ns;
 
         internal MessageService(TcpClient client)
         {
             Client = client;
             _ns = client.GetStream();
+            LocalEndpoint = ConnectionService.GetLocalClientEndpoint(Client)!;
+            RemoteEndpoint = ConnectionService.GetRemoteClientEndpoint(Client)!;
         }
 
         internal async Task ReadMessage(onMessageHandler onMessage)
@@ -28,7 +33,6 @@ namespace phat.Services
             int msgSize = 0;
             StringBuilder sb = new();
 
-            IPEndPoint remoteEndpoint = ConnectionService.GetRemoteClientEndpoint(Client)!;
 
             while (Client.Connected) {
                 while (_ns.DataAvailable)
@@ -40,18 +44,19 @@ namespace phat.Services
                 }
                 if (sb.Length > 0)
                 {
-                    onMessage.Invoke(remoteEndpoint, msgSize, sb.ToString());
+                    onMessage.Invoke(RemoteEndpoint, msgSize, sb.ToString());
                     sb.Clear();
                     msgSize = 0;
                 }
             }
         }
 
-        internal async Task WriteMessage(string message)
+        internal async Task WriteMessage(string message, onMessageHandler onMessage)
         {
             if (Client.Connected) {
                 byte[] writeBuffer = Encoding.UTF8.GetBytes(message);
                 await _ns.WriteAsync(writeBuffer);
+                onMessage(LocalEndpoint, writeBuffer.Length, message);
             }
         }
 
