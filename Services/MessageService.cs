@@ -1,8 +1,6 @@
-﻿using System.IO;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System;
 
 namespace phat.Services
 {
@@ -28,13 +26,14 @@ namespace phat.Services
 
         internal async Task ReadMessage(onMessageHandler onMessage)
         {
-            
+
             byte[] msgbuffer = new byte[2];
             int msgSize = 0;
             StringBuilder sb = new();
 
 
-            while (Client.Connected) {
+            while (Client.Connected)
+            {
                 while (_ns.DataAvailable)
                 {
                     msgSize += await _ns.ReadAsync(msgbuffer);
@@ -53,7 +52,8 @@ namespace phat.Services
 
         internal async Task WriteMessage(string message, onMessageHandler onMessage)
         {
-            if (Client.Connected) {
+            if (Client.Connected)
+            {
                 byte[] writeBuffer = Encoding.UTF8.GetBytes(message);
                 await _ns.WriteAsync(writeBuffer);
                 onMessage(LocalEndpoint, writeBuffer.Length, message);

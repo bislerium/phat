@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace phat.Interface.CMD
+﻿namespace phat.Interface.CMD
 {
     internal static class Settings
     {
@@ -13,6 +7,7 @@ namespace phat.Interface.CMD
         internal const string AppDescription = "A console-based P2P chat application right to your terminal.";
         internal const string AppRepoURL = "https://github.com/gcbishal/phat";
         internal const int DefaultPort = 51123;
+        internal const string IPAddressRegex = "^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
         internal static bool beepOnIncomingMessage = false;
     }
 }

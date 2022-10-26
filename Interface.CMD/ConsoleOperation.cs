@@ -8,17 +8,19 @@ namespace phat.Interface.CMD
     internal class ConsoleOperation
     {
         private readonly MessageService _messageService;
-        private const int POLL_RATE_MIL = 1000*2;
-        
+        private const int POLL_RATE_MIL = 1000 * 2;
+
         public ConsoleOperation(MessageService messageService)
         {
             _messageService = messageService;
         }
 
-        private void StartMessageReadOperation() {
+        private void StartMessageReadOperation()
+        {
             Thread readerThread = new(async () =>
             {
-                await _messageService.ReadMessage((senderEndpoint, messageSize, message) => {
+                await _messageService.ReadMessage((senderEndpoint, messageSize, message) =>
+                {
                     ClearCursorLine();
                     AnsiConsole.MarkupLine("   [black on lime] {0} [/][white on red] {1}B [/] {2}", getCurrentTime(), messageSize, message);
                     if (Settings.beepOnIncomingMessage) Console.Beep();
@@ -38,7 +40,8 @@ namespace phat.Interface.CMD
                 {
                     string? s = Console.ReadLine();
                     ClearCursorLine(1);
-                    if (s is not null && s.Length > 0) await _messageService.WriteMessage(s, (senderEndpoint, messageSize, message) => {
+                    if (s is not null && s.Length > 0) await _messageService.WriteMessage(s, (senderEndpoint, messageSize, message) =>
+                    {
                         AnsiConsole.MarkupLine("   [black on yellow] {0} [/][white on red] {1}B [/] {2}", getCurrentTime(), messageSize, message);
                     });
                 }
@@ -66,7 +69,8 @@ namespace phat.Interface.CMD
             Thread ConnectionStateThread = new(() =>
             {
                 var tp = IPGlobalProperties.GetIPGlobalProperties();
-                while (true) {
+                while (true)
+                {
                     Thread.Sleep(POLL_RATE_MIL);
                     TcpState? tcpState = tp.GetActiveTcpConnections().FirstOrDefault(x => x.LocalEndPoint.Equals(socketClient.LocalEndPoint))?.State;
                     if (tcpState == null || tcpState == TcpState.Unknown || tcpState == TcpState.CloseWait || tcpState == TcpState.Closed)
@@ -83,14 +87,6 @@ namespace phat.Interface.CMD
                 AnsiConsole.Write(rule);
             });
             ConnectionStateThread.Start();
-        }
-
-        public static TcpState GetState(Socket socketClient)
-        {
-            var foo = IPGlobalProperties.GetIPGlobalProperties()
-              .GetActiveTcpConnections()
-              .FirstOrDefault(x => x.LocalEndPoint.Equals(socketClient.LocalEndPoint));
-            return foo != null ? foo.State : TcpState.Unknown;
         }
 
         public static string getCurrentTime() => DateTime.Now.ToLongTimeString();

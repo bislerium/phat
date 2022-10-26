@@ -1,20 +1,20 @@
-﻿using System.Net.Sockets;
-using System.Net;
+﻿using System.Net;
+using System.Net.Sockets;
 
 namespace phat.Services
 {
 
-    internal delegate TcpClient onStartHandler(TcpListener listener); 
+    internal delegate TcpClient onStartHandler(TcpListener listener);
     internal delegate void onConnectHandler(TcpClient client);
-    
-    
+
+
     internal static class ConnectionService
     {
         internal static TcpClient Create(IPEndPoint localEndpoint, onStartHandler onStart)
         {
             TcpListener listener = new(localEndpoint);
             listener.Start();
-            return onStart.Invoke(listener);             
+            return onStart.Invoke(listener);
         }
 
         internal static TcpClient Join(String remoteIP, int remotePort, onConnectHandler onConnect)
@@ -22,7 +22,7 @@ namespace phat.Services
             try
             {
                 TcpClient client = new(remoteIP, remotePort);
-                onConnect.Invoke(client);                
+                onConnect.Invoke(client);
                 return client;
             }
             catch (Exception)

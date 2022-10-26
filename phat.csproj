@@ -2,13 +2,20 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <SignAssembly>False</SignAssembly>
+    <ApplicationIcon>g7850.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="g7850.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommandDotNet" Version="7.0.1" />
+    <PackageReference Include="CommandDotNet.DataAnnotations" Version="3.0.1" />
     <PackageReference Include="Spectre.Console" Version="0.45.0" />
   </ItemGroup>
 
