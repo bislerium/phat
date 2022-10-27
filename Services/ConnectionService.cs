@@ -1,5 +1,8 @@
-﻿using System.Net;
+﻿using phat.Exceptions;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Net.Sockets;
+using Windows.Media.Protection.PlayReady;
 
 namespace phat.Services
 {
@@ -10,24 +13,63 @@ namespace phat.Services
 
     internal static class ConnectionService
     {
-        internal static TcpClient Create(IPEndPoint localEndpoint, onStartHandler onStart)
+        internal static TcpClient Create(onStartHandler onStart) => Create(GetLocalIPAddress(), 0, onStart);
+        internal static TcpClient Create(IPAddress localIP, int localPort, onStartHandler onStart)
         {
-            TcpListener listener = new(localEndpoint);
+            IPEndPoint localEP = new (localIP, localPort);
+            TcpListener listener = new(localEP);
             listener.Start();
             return onStart.Invoke(listener);
         }
 
-        internal static TcpClient Join(String remoteIP, int remotePort, onConnectHandler onConnect)
+        private static (TcpClient, IPEndPoint) GetClientWithEndpoint(IPAddress remoteIP, int remotePort) => (new TcpClient(AddressFamily.InterNetwork), new IPEndPoint(remoteIP, remotePort));
+
+        private static void Connect(TcpClient client, IPEndPoint remoteEP, onConnectHandler onConnect)
         {
+            client.Connect(remoteEP);
+            onConnect.Invoke(client);
+        }
+
+        internal static TcpClient Join(IPAddress remoteIP,
+            int remotePort,
+            onConnectHandler onConnect,
+            [Range(1,8)] int retry,
+            [Range(1_000, 10_000)] int retryDuration)
+        {
+            int attempt = 0;
+            int socketErrorCode = 0;
+            (TcpClient client, IPEndPoint remoteEP) = GetClientWithEndpoint(remoteIP, remotePort);
+            while (attempt <= retry) {
+                try
+                {
+                    Console.WriteLine("Attmepting to connect: {0}", attempt);
+                    if (attempt != 0) Thread.Sleep(retryDuration);
+                    Connect(client, remoteEP, onConnect);
+                    return client;
+                }
+                catch (SocketException se)
+                {
+                    attempt++;
+                    socketErrorCode = se.ErrorCode;
+                }
+            }
+            client.Dispose();
+            throw new ConnectException(socketErrorCode);
+        }
+
+
+        internal static TcpClient Join(IPAddress remoteIP, int remotePort, onConnectHandler onConnect)
+        {
+            (TcpClient client, IPEndPoint remoteEP) = GetClientWithEndpoint(remoteIP, remotePort);
             try
             {
-                TcpClient client = new(remoteIP, remotePort);
-                onConnect.Invoke(client);
+                Connect(client, remoteEP, onConnect);
                 return client;
             }
-            catch (Exception)
+            catch (SocketException se)
             {
-                throw;
+                client.Dispose();             
+                throw new ConnectException(se.ErrorCode);
             }
         }
 

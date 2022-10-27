@@ -22,7 +22,7 @@ namespace phat.Interface.CMD
                 await _messageService.ReadMessage((senderEndpoint, messageSize, message) =>
                 {
                     ClearCursorLine();
-                    AnsiConsole.MarkupLine("   [black on lime] {0} [/][white on red] {1}B [/] {2}", getCurrentTime(), messageSize, message);
+                    AnsiConsole.MarkupLine("   [black on aqua] {0} [/][white on royalblue1] {1}B [/] {2}", getCurrentTime(), messageSize, message);
                     if (Settings.beepOnIncomingMessage) Console.Beep();
                 });
             })
@@ -42,7 +42,7 @@ namespace phat.Interface.CMD
                     ClearCursorLine(1);
                     if (s is not null && s.Length > 0) await _messageService.WriteMessage(s, (senderEndpoint, messageSize, message) =>
                     {
-                        AnsiConsole.MarkupLine("   [black on yellow] {0} [/][white on red] {1}B [/] {2}", getCurrentTime(), messageSize, message);
+                        AnsiConsole.MarkupLine("   [black on yellow] {0} [/][white on royalblue1] {1}B [/] {2}", getCurrentTime(), messageSize, message);
                     });
                 }
             })
@@ -65,17 +65,18 @@ namespace phat.Interface.CMD
             StartMessageWriteOperation();
             Socket socketClient = _messageService.Client.Client;
             var f = ConnectionService.GetRemoteClientEndpoint;
-
             Thread ConnectionStateThread = new(() =>
             {
                 var tp = IPGlobalProperties.GetIPGlobalProperties();
+
                 while (true)
                 {
                     Thread.Sleep(POLL_RATE_MIL);
                     TcpState? tcpState = tp.GetActiveTcpConnections().FirstOrDefault(x => x.LocalEndPoint.Equals(socketClient.LocalEndPoint))?.State;
+
                     if (tcpState == null || tcpState == TcpState.Unknown || tcpState == TcpState.CloseWait || tcpState == TcpState.Closed)
                     {
-                        _messageService.Close();
+                        _messageService.Dispose();
                         break;
                     }
                 }

@@ -60,10 +60,10 @@ namespace phat.Services
             }
         }
 
-        internal void Close()
+        internal void Dispose()
         {
-            _ns.Close();
-            Client.Close();
+            _ns.Dispose();
+            Client.Dispose();
         }
     }
 }

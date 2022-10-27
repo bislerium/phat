@@ -19,33 +19,33 @@ namespace phat.Interface.CMD
         }
 
         [Command("host")]
-        public void Host([Option('b')] bool beep, [Range(1024, 65535)] int port = Settings.DefaultPort)
+        public void Host([Option('b')] bool beep, [Range(1024, 65535)] int? port)
         {
-            IPEndPoint localEndpoint = new(ConnectionService.GetLocalIPAddress(), port);
-            TcpClient remoteClient = ConnectionService.Create(
-                localEndpoint,
-                listener =>
-                {
-                    var f = ConnectionService.FlattenIPEndpoint(localEndpoint);
+            TcpClient onStart(TcpListener listener)
+            {
+                var f = ConnectionService.FlattenIPEndpoint((IPEndPoint)listener.LocalEndpoint);
 
-                    return AnsiConsole.Status()
-                    .Start($"Chat session started at {f.Item1}:{f.Item2}", ctx =>
-                    {
-                        TcpClient client = listener.AcceptTcpClient();
-                        onConnectPrint(client, true);
-                        return client;
-                    });
-                }
-                );
+                return AnsiConsole.Status()
+                .Start($"Chat session started at {f.Item1}:{f.Item2}", ctx =>
+                {
+                    TcpClient client = listener.AcceptTcpClient();
+                    onConnectPrint(client, true);
+                    return client;
+                });
+            }
+
+            TcpClient remoteClient = port == null
+                ? ConnectionService.Create(onStart)
+                : ConnectionService.Create(ConnectionService.GetLocalIPAddress(), port.Value, onStart);
 
             StartMessaging(remoteClient);
             Settings.beepOnIncomingMessage = beep;
         }
 
         [Command("join")]
-        public void Join([Option('b')] bool beep, [RegularExpression(Settings.IPAddressRegex, ErrorMessage = "Invalid IPv4 Address!")] string ipAddress, [Range(1024, 65535)] int port)
+        public void Join([Option('b')] bool beep, string ipAddress, [Range(1024, 65535)] int port)
         {
-            TcpClient remoteClient = ConnectionService.Join(ipAddress, port, client =>
+            TcpClient remoteClient = ConnectionService.Join(IPAddress.Parse(ipAddress), port, client =>
             {
                 var f = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
                 AnsiConsole.Status()
@@ -56,7 +56,7 @@ namespace phat.Interface.CMD
                            onConnectPrint(client);
                        }
                    });
-            });
+            }, 5, 1000);
             StartMessaging(remoteClient);
             Settings.beepOnIncomingMessage = beep;
         }
@@ -66,7 +66,7 @@ namespace phat.Interface.CMD
             MessageService ms = new(client);
             Console.CancelKeyPress += (args, sender) =>
             {
-                ms.Close();
+                ms.Dispose();
                 Rule rule = new("[red]Exited[/]")
                 {
                     Alignment = Justify.Left
@@ -82,8 +82,9 @@ namespace phat.Interface.CMD
         void onConnectPrint(TcpClient client, bool reverse = false)
         {
             var r = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
-            var f = ConnectionService.FlattenIPEndpoint(ConnectionService.GetLocalClientEndpoint(client)!);
-            Rule rule = new($"[green]Connected at {DateTime.Now} :[/] [black on yellow] {f.Item1}:{f.Item2} (You) [/] {(reverse ? "<-" : "->")} [black on lime] {r.Item1}:{r.Item2} [/]")
+            var l = ConnectionService.FlattenIPEndpoint(ConnectionService.GetLocalClientEndpoint(client)!);
+
+            Rule rule = new($"[green]Connected at {DateTime.Now} :[/] [black on yellow] {l.Item1}:{l.Item2} (You) [/] {(reverse ? "<-" : "->")} [black on aqua] {r.Item1}:{r.Item2} [/]")
             {
                 Alignment = Justify.Left
             };
