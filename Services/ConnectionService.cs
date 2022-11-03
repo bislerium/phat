@@ -14,6 +14,11 @@ namespace phat.Services
     internal static class ConnectionService
     {
         internal static TcpClient Create(onStartHandler onStart) => Create(GetLocalIPAddress(), 0, onStart);
+
+        internal static TcpClient Create(IPAddress localIP, onStartHandler onStart) => Create(localIP, 0, onStart);
+
+        internal static TcpClient Create(int localPort, onStartHandler onStart) => Create(GetLocalIPAddress(), localPort, onStart);
+
         internal static TcpClient Create(IPAddress localIP, int localPort, onStartHandler onStart)
         {
             IPEndPoint localEP = new (localIP, localPort);
@@ -30,7 +35,7 @@ namespace phat.Services
             onConnect.Invoke(client);
         }
 
-        internal static TcpClient Join(IPAddress remoteIP,
+        internal static TcpClient Connect(IPAddress remoteIP,
             int remotePort,
             onConnectHandler onConnect,
             [Range(1,8)] int retry,

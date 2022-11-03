@@ -4,6 +4,7 @@ using Spectre.Console;
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 
 namespace phat.Interface.CMD
 {
@@ -18,8 +19,9 @@ namespace phat.Interface.CMD
             AnsiConsole.Write(new Panel($"{Settings.AppDescription} [black on yellow rapidblink] {Settings.AppRepoURL} [/] [white on royalblue1] {Settings.AppVersion} [/]"));
         }
 
-        [Command("host")]
-        public void Host([Option('b')] bool beep, [Range(1024, 65535)] int? port)
+
+        [Command("host", Description ="Host a local chat session", ArgumentSeparatorStrategy = ArgumentSeparatorStrategy.PassThru)]
+        public void Host(CommandContext ctx, [Option('b')] bool beep)
         {
             TcpClient onStart(TcpListener listener)
             {
@@ -33,19 +35,29 @@ namespace phat.Interface.CMD
                     return client;
                 });
             }
-
-            TcpClient remoteClient = port == null
+            var args = ctx.ParseResult!.SeparatedArguments;
+            if (args.Count > 2) { }
+            string? ip; int? port;
+            for (var i in args) {
+                bool b = int.TryParse(i, out port);
+                if (i is not null) { }
+                var r = new Regex(Settings.IPAddressRegex);
+                if (r.IsMatch(i)) { 
+                
+                }
+            }
+            TcpClient remoteClient = 1 == 1
                 ? ConnectionService.Create(onStart)
-                : ConnectionService.Create(ConnectionService.GetLocalIPAddress(), port.Value, onStart);
+                : ConnectionService.Create(ConnectionService.GetLocalIPAddress(), 34223, onStart);
 
             StartMessaging(remoteClient);
             Settings.beepOnIncomingMessage = beep;
         }
 
-        [Command("join")]
-        public void Join([Option('b')] bool beep, string ipAddress, [Range(1024, 65535)] int port)
+        [Command("join", Description = "Join a chat session")]
+        public void Join([Option('b')] bool beep, [RegularExpression(Settings.IPAddressRegex)] string ipAddress, [Range(1024, 65535)] int port)
         {
-            TcpClient remoteClient = ConnectionService.Join(IPAddress.Parse(ipAddress), port, client =>
+            TcpClient remoteClient = ConnectionService.Connect(IPAddress.Parse(ipAddress), port, client =>
             {
                 var f = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
                 AnsiConsole.Status()
