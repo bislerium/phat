@@ -2,7 +2,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Sockets;
-using Windows.Media.Protection.PlayReady;
 
 namespace phat.Services
 {
@@ -21,7 +20,7 @@ namespace phat.Services
 
         internal static TcpClient Create(IPAddress localIP, int localPort, onStartHandler onStart)
         {
-            IPEndPoint localEP = new (localIP, localPort);
+            IPEndPoint localEP = new(localIP, localPort);
             TcpListener listener = new(localEP);
             listener.Start();
             return onStart.Invoke(listener);
@@ -38,13 +37,14 @@ namespace phat.Services
         internal static TcpClient Connect(IPAddress remoteIP,
             int remotePort,
             onConnectHandler onConnect,
-            [Range(1,8)] int retry,
+            [Range(1, 8)] int retry,
             [Range(1_000, 10_000)] int retryDuration)
         {
             int attempt = 0;
             int socketErrorCode = 0;
             (TcpClient client, IPEndPoint remoteEP) = GetClientWithEndpoint(remoteIP, remotePort);
-            while (attempt <= retry) {
+            while (attempt <= retry)
+            {
                 try
                 {
                     Console.WriteLine("Attmepting to connect: {0}", attempt);
@@ -73,7 +73,7 @@ namespace phat.Services
             }
             catch (SocketException se)
             {
-                client.Dispose();             
+                client.Dispose();
                 throw new ConnectException(se.ErrorCode);
             }
         }

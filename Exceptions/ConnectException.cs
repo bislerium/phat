@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace phat.Exceptions
+﻿namespace phat.Exceptions
 {
     internal class ConnectException : Exception
     {
@@ -15,7 +8,7 @@ namespace phat.Exceptions
         internal ConnectException(int socketErrorCode, string message = "Cannot connect to the remote address!") : base($"({socketErrorCode}) {message}")
         {
             Message = message;
-            SocketErrorCode = socketErrorCode;            
+            SocketErrorCode = socketErrorCode;
         }
     }
 }
