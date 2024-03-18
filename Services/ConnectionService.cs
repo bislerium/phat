@@ -47,7 +47,7 @@ namespace phat.Services
             {
                 try
                 {
-                    Console.WriteLine("Attmepting to connect: {0}", attempt);
+                    Console.WriteLine("Attempting to connect: {0}", attempt);
                     if (attempt != 0) Thread.Sleep(retryDuration);
                     Connect(client, remoteEP, onConnect);
                     return client;

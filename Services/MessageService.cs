@@ -27,7 +27,7 @@ namespace phat.Services
         internal async Task ReadMessage(onMessageHandler onMessage)
         {
 
-            byte[] msgbuffer = new byte[2];
+            byte[] msgBuffer = new byte[2];
             int msgSize = 0;
             StringBuilder sb = new();
 
@@ -36,10 +36,10 @@ namespace phat.Services
             {
                 while (_ns.DataAvailable)
                 {
-                    msgSize += await _ns.ReadAsync(msgbuffer);
-                    String s = Encoding.UTF8.GetString(msgbuffer);
+                    msgSize += await _ns.ReadAsync(msgBuffer);
+                    string s = Encoding.UTF8.GetString(msgBuffer);
                     sb.Append(s);
-                    Array.Clear(msgbuffer);
+                    Array.Clear(msgBuffer);
                 }
                 if (sb.Length > 0)
                 {

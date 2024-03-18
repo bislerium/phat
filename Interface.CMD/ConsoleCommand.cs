@@ -51,19 +51,19 @@ namespace phat.Interface.CMD
                         string value = args.First();
                         if (value.Length <= 5)
                         {
-                            validate(true, portChecker.IsValid(value));
+                            Validate(true, portChecker.IsValid(value));
                             remoteClient = ConnectionService.Create(int.Parse(value), onStart);
                         }
                         else
                         {
-                            validate(ipChecker.IsValid(value), true);
+                            Validate(ipChecker.IsValid(value), true);
                             remoteClient = ConnectionService.Create(IPAddress.Parse(value), onStart);
                         }
                         break;
                     case 2:
                         string? ipArg = args.ElementAt(0);
                         string? portArg = args.ElementAt(1);
-                        validate(ipChecker.IsValid(ipArg), portChecker.IsValid(portArg));
+                        Validate(ipChecker.IsValid(ipArg), portChecker.IsValid(portArg));
                         remoteClient = ConnectionService.Create(IPAddress.Parse(ipArg), int.Parse(portArg), onStart);
                         break;
                     default:
@@ -79,7 +79,7 @@ namespace phat.Interface.CMD
             Settings.beepOnIncomingMessage = beep;
         }
 
-        private void validate(bool validIP = true, bool validPort = true) {
+        private static void Validate(bool validIP = true, bool validPort = true) {
             StringBuilder stringBuilder = new StringBuilder();
             if (!validIP) stringBuilder.AppendLine("Invalid IP address!");
             if (!validPort) stringBuilder.AppendLine("Invalid ephemeral port! must be exclusively between 1024 and 65535.");
