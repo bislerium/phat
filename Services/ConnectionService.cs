@@ -5,8 +5,8 @@ using System.Net.Sockets;
 
 namespace phat.Services
 {
-
     internal delegate TcpClient onStartHandler(TcpListener listener);
+
     internal delegate void onConnectHandler(TcpClient client);
 
 
@@ -16,7 +16,8 @@ namespace phat.Services
 
         internal static TcpClient Create(IPAddress localIP, onStartHandler onStart) => Create(localIP, 0, onStart);
 
-        internal static TcpClient Create(int localPort, onStartHandler onStart) => Create(GetLocalIPAddress(), localPort, onStart);
+        internal static TcpClient Create(int localPort, onStartHandler onStart) =>
+            Create(GetLocalIPAddress(), localPort, onStart);
 
         internal static TcpClient Create(IPAddress localIP, int localPort, onStartHandler onStart)
         {
@@ -26,7 +27,8 @@ namespace phat.Services
             return onStart.Invoke(listener);
         }
 
-        private static (TcpClient, IPEndPoint) GetClientWithEndpoint(IPAddress remoteIP, int remotePort) => (new TcpClient(AddressFamily.InterNetwork), new IPEndPoint(remoteIP, remotePort));
+        private static (TcpClient, IPEndPoint) GetClientWithEndpoint(IPAddress remoteIP, int remotePort) => (
+            new TcpClient(AddressFamily.InterNetwork), new IPEndPoint(remoteIP, remotePort));
 
         private static void Connect(TcpClient client, IPEndPoint remoteEP, onConnectHandler onConnect)
         {
@@ -58,6 +60,7 @@ namespace phat.Services
                     socketErrorCode = se.ErrorCode;
                 }
             }
+
             client.Dispose();
             throw new ConnectException(socketErrorCode);
         }
@@ -80,19 +83,21 @@ namespace phat.Services
 
         public static IPAddress GetLocalIPAddress()
         {
-            return Dns
-                .GetHostEntry(Dns.GetHostName())
-                .AddressList
-                .First(ip => ip.AddressFamily == AddressFamily.InterNetwork);
-            throw new Exception("No network adapters with an IPv4 address in the system!");
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            var ip = host.AddressList.FirstOrDefault(a =>
+                a.AddressFamily == AddressFamily.InterNetwork &&
+                !IPAddress.IsLoopback(a));
+
+            return ip ?? throw new Exception("No network adapters with a valid IPv4 address found.");
         }
 
-        public static IPEndPoint? GetRemoteClientEndpoint(TcpClient client) => client.Client.RemoteEndPoint as IPEndPoint;
+
+        public static IPEndPoint? GetRemoteClientEndpoint(TcpClient client) =>
+            client.Client.RemoteEndPoint as IPEndPoint;
 
         public static IPEndPoint? GetLocalClientEndpoint(TcpClient client) => client.Client.LocalEndPoint as IPEndPoint;
 
-        public static (string, int) FlattenIPEndpoint(IPEndPoint ipEndPoint) => (ipEndPoint.Address.ToString(), ipEndPoint.Port);
+        public static (string, int) FlattenIPEndpoint(IPEndPoint ipEndPoint) =>
+            (ipEndPoint.Address.ToString(), ipEndPoint.Port);
     }
 }
-
-
