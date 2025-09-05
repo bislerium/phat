@@ -8,7 +8,7 @@ namespace phat.Interface.CMD
     internal class ConsoleOperation
     {
         private readonly MessageService _messageService;
-        private const int POLL_RATE_MIL = 1000 * 2;
+        private const int PollRateMil = 1000 * 2;
 
         public ConsoleOperation(MessageService messageService)
         {
@@ -65,13 +65,13 @@ namespace phat.Interface.CMD
             StartMessageWriteOperation();
             Socket socketClient = _messageService.Client.Client;
             var f = ConnectionService.GetRemoteClientEndpoint;
-            Thread ConnectionStateThread = new(() =>
+            Thread connectionStateThread = new(() =>
             {
                 var tp = IPGlobalProperties.GetIPGlobalProperties();
 
                 while (true)
                 {
-                    Thread.Sleep(POLL_RATE_MIL);
+                    Thread.Sleep(PollRateMil);
                     TcpState? tcpState = tp.GetActiveTcpConnections().FirstOrDefault(x => x.LocalEndPoint.Equals(socketClient.LocalEndPoint))?.State;
 
                     if (tcpState == null || tcpState == TcpState.Unknown || tcpState == TcpState.CloseWait || tcpState == TcpState.Closed)
@@ -87,7 +87,7 @@ namespace phat.Interface.CMD
                 AnsiConsole.WriteLine("");
                 AnsiConsole.Write(rule);
             });
-            ConnectionStateThread.Start();
+            connectionStateThread.Start();
         }
 
         public static string getCurrentTime() => DateTime.Now.ToLongTimeString();

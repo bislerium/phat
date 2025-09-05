@@ -11,31 +11,21 @@ namespace phat.Interface.CMD
 {
     internal class ConsoleCommand
     {
-        [DefaultCommand()]
+        [DefaultCommand]
         public void Info()
         {
             AnsiConsole.Write(new FigletText(Settings.AppTitle)
                 .LeftAligned()
                 .Color(Color.Red));
-            AnsiConsole.Write(new Panel($"{Settings.AppDescription} [black on yellow rapidblink] {Settings.AppRepoURL} [/] [white on royalblue1] {Settings.AppVersion} [/]"));
+            AnsiConsole.Write(new Panel(
+                $"{Settings.AppDescription} [black on yellow rapidblink] {Settings.AppRepoURL} [/] [white on royalblue1] {Settings.AppVersion} [/]"));
         }
 
 
-        [Command("host", Description = "Host a local chat session", ArgumentSeparatorStrategy = ArgumentSeparatorStrategy.PassThru)]
+        [Command("host", Description = "Host a local chat session",
+            ArgumentSeparatorStrategy = ArgumentSeparatorStrategy.PassThru)]
         public void Host(CommandContext ctx, [Option('b')] bool beep)
         {
-            TcpClient onStart(TcpListener listener)
-            {
-                var f = ConnectionService.FlattenIPEndpoint((IPEndPoint)listener.LocalEndpoint);
-
-                return AnsiConsole.Status()
-                .Start($"Chat session started at {f.Item1}:{f.Item2}", ctx =>
-                {
-                    TcpClient client = listener.AcceptTcpClient();
-                    onConnectPrint(client, true);
-                    return client;
-                });
-            }
             var args = ctx.ParseResult!.SeparatedArguments;
             var ipChecker = new RegularExpressionAttribute(Settings.IPAddressRegex);
             var portChecker = new RangeAttribute(1024, 65535);
@@ -45,26 +35,27 @@ namespace phat.Interface.CMD
                 switch (args.Count)
                 {
                     case 0:
-                        remoteClient = ConnectionService.Create(onStart);
+                        remoteClient = ConnectionService.Create(OnStart);
                         break;
                     case 1:
-                        string value = args.First();
+                        var value = args.First();
                         if (value.Length <= 5)
                         {
                             Validate(true, portChecker.IsValid(value));
-                            remoteClient = ConnectionService.Create(int.Parse(value), onStart);
+                            remoteClient = ConnectionService.Create(int.Parse(value), OnStart);
                         }
                         else
                         {
                             Validate(ipChecker.IsValid(value), true);
-                            remoteClient = ConnectionService.Create(IPAddress.Parse(value), onStart);
+                            remoteClient = ConnectionService.Create(IPAddress.Parse(value), OnStart);
                         }
+
                         break;
                     case 2:
-                        string? ipArg = args.ElementAt(0);
-                        string? portArg = args.ElementAt(1);
+                        var ipArg = args.ElementAt(0);
+                        var portArg = args.ElementAt(1);
                         Validate(ipChecker.IsValid(ipArg), portChecker.IsValid(portArg));
-                        remoteClient = ConnectionService.Create(IPAddress.Parse(ipArg), int.Parse(portArg), onStart);
+                        remoteClient = ConnectionService.Create(IPAddress.Parse(ipArg), int.Parse(portArg), OnStart);
                         break;
                     default:
                         throw new ConsoleException("Invalid arguments!, Expected: [<ip> <port>]");
@@ -77,38 +68,55 @@ namespace phat.Interface.CMD
 
             StartMessaging(remoteClient);
             Settings.beepOnIncomingMessage = beep;
+            return;
+
+            TcpClient OnStart(TcpListener listener)
+            {
+                var f = ConnectionService.FlattenIPEndpoint((IPEndPoint)listener.LocalEndpoint);
+
+                return AnsiConsole.Status()
+                    .Start($"Chat session started at {f.Item1}:{f.Item2}", _ =>
+                    {
+                        var client = listener.AcceptTcpClient();
+                        OnConnectPrint(client, true);
+                        return client;
+                    });
+            }
         }
 
-        private static void Validate(bool validIP = true, bool validPort = true) {
-            StringBuilder stringBuilder = new StringBuilder();
-            if (!validIP) stringBuilder.AppendLine("Invalid IP address!");
-            if (!validPort) stringBuilder.AppendLine("Invalid ephemeral port! must be exclusively between 1024 and 65535.");
-            if (stringBuilder.Length != 0) throw new ConsoleException(stringBuilder.ToString()); 
+        private static void Validate(bool validIp = true, bool validPort = true)
+        {
+            var stringBuilder = new StringBuilder();
+            if (!validIp) stringBuilder.AppendLine("Invalid IP address!");
+            if (!validPort)
+                stringBuilder.AppendLine("Invalid ephemeral port! must be exclusively between 1024 and 65535.");
+            if (stringBuilder.Length != 0) throw new ConsoleException(stringBuilder.ToString());
         }
 
         [Command("join", Description = "Join a chat session")]
-        public void Join([Option('b')] bool beep, [RegularExpression(Settings.IPAddressRegex)] string ipAddress, [Range(1024, 65535)] int port)
+        public void Join([Option('b')] bool beep, string ipAddress,
+            [Range(1024, 65535)] int port)
         {
-            TcpClient remoteClient = ConnectionService.Connect(IPAddress.Parse(ipAddress), port, client =>
+            var remoteClient = ConnectionService.Connect(IPAddress.Parse(ipAddress), port, client =>
             {
-                var f = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
+                ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
                 AnsiConsole.Status()
-                   .Start("Attempting to Join", ctx =>
-                   {
-                       if (client.Connected)
-                       {
-                           onConnectPrint(client);
-                       }
-                   });
+                    .Start("Attempting to Join", _ =>
+                    {
+                        if (client.Connected)
+                        {
+                            OnConnectPrint(client);
+                        }
+                    });
             }, 5, 1000);
             StartMessaging(remoteClient);
             Settings.beepOnIncomingMessage = beep;
         }
 
-        private void StartMessaging(TcpClient client)
+        private static void StartMessaging(TcpClient client)
         {
             MessageService ms = new(client);
-            Console.CancelKeyPress += (args, sender) =>
+            Console.CancelKeyPress += (_, _) =>
             {
                 ms.Dispose();
                 Rule rule = new("[red]Exited[/]")
@@ -123,14 +131,15 @@ namespace phat.Interface.CMD
             co.Start();
         }
 
-        void onConnectPrint(TcpClient client, bool reverse = false)
+        private static void OnConnectPrint(TcpClient client, bool reverse = false)
         {
             var r = ConnectionService.FlattenIPEndpoint(ConnectionService.GetRemoteClientEndpoint(client)!);
             var l = ConnectionService.FlattenIPEndpoint(ConnectionService.GetLocalClientEndpoint(client)!);
 
-            Rule rule = new($"[green]Connected at {DateTime.Now} :[/] [black on yellow] {l.Item1}:{l.Item2} (You) [/] {(reverse ? "<-" : "->")} [black on aqua] {r.Item1}:{r.Item2} [/]")
+            Rule rule = new(
+                $"[green]Connected at {DateTime.Now} :[/] [black on yellow] {l.Item1}:{l.Item2} (You) [/] {(reverse ? "<-" : "->")} [black on aqua] {r.Item1}:{r.Item2} [/]")
             {
-                Alignment = Justify.Left
+                Alignment = Justify.Left,
             };
             AnsiConsole.WriteLine("");
             AnsiConsole.Write(rule);
